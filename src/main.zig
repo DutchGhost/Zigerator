@@ -38,6 +38,8 @@ test "range iterate + enumerate" {
 
     next = range.next();
     testing.expectEqual(next, null);
+
+    testing.expectEqual(range.is_empty(), true);
 }
 
 test "range nth" {

@@ -1,5 +1,8 @@
 const itermodule = @import("iterator.zig");
 const Iterator = itermodule.Iterator;
+const DoubleEndedIterator = itermodule.DoubleEndedIterator;
+const ExactSizeIterator = itermodule.ExactSizeIterator;
+
 const Tuple = itermodule.Tuple;
 
 pub fn Enumerate(comptime Iter: type) type {
@@ -23,10 +26,16 @@ pub fn Enumerate(comptime Iter: type) type {
         
         fn next_back(self: *Self) ?Self.Item {
             var elem = self.iter.next_back() orelse return null;
-            var len = self.iter.len();
-            return Self.Item {.a = self.count + len, .b = elem};
+            var __len = self.iter.len();
+            return Self.Item {.a = self.count + __len, .b = elem};
+        }
+
+        pub fn len(self: *const Self) usize {
+            return self.iter.len();
         }
 
         usingnamespace Iterator(Self, Tuple(usize, Iter.Item));
+        usingnamespace DoubleEndedIterator(Self);
+        usingnamespace ExactSizeIterator(Self);
     };
 }

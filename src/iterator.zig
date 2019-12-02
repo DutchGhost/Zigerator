@@ -1,9 +1,8 @@
-/// Expect a `next` function to be defined:
-/// fn next(self: *Self) ?Item
-
 const Enumerate = @import("enumerate.zig").Enumerate;
 const Rev = @import("rev.zig").Rev;
 
+/// Expect a `next` function to be defined:
+/// fn next(self: *Self) ?Item
 pub fn Iterator(comptime Self: type, comptime _Item: type) type {
     return struct {
         pub const Item = _Item;
@@ -31,15 +30,23 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
     };
 }
 
+/// Expects a `next_back` function to be defined:
+/// fn next_back(self: *Self) ?Item
 pub fn DoubleEndedIterator(comptime Self: type) type {
     return struct {
         usingnamespace Iterator(Self, Self.Item);
     };
 }
 
+/// Expects a `len` function to be defined:
+/// fn len(self: *const Self) usize
 pub fn ExactSizeIterator(comptime Self: type) type {
     return struct {
         usingnamespace Iterator(Self, Self.Item);
+
+        pub fn is_empty(self: *const Self) bool {
+            return self.len() == 0;
+        }
     };
 }
 
@@ -86,6 +93,7 @@ pub fn Range(comptime T: type) type {
 
         pub usingnamespace Iterator(Self, T);
         pub usingnamespace DoubleEndedIterator(Self);
+        pub usingnamespace ExactSizeIterator(Self);
     };
 }
 

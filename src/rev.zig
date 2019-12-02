@@ -2,6 +2,7 @@
 const itermodule = @import("iterator.zig");
 const Iterator = itermodule.Iterator;
 const DoubleEndedIterator = itermodule.DoubleEndedIterator;
+const ExactSizeIterator = itermodule.ExactSizeIterator;
 
 pub fn Rev(comptime Iter: type) type {
     return struct {
@@ -21,7 +22,12 @@ pub fn Rev(comptime Iter: type) type {
             return self.iter.next();
         }
 
+        pub fn len(self: *const Self) usize {
+            return self.iter.len();
+        }
+
         usingnamespace Iterator(Self, Iter.Item);
         usingnamespace DoubleEndedIterator(Self);
+        usingnamespace ExactSizeIterator(Self);
     };
 }
