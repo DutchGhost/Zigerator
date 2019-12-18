@@ -17,7 +17,7 @@ pub fn Enumerate(comptime Iter: type) type {
             return Self { .iter = iterator, .count = 0};
         }
 
-        fn next(self: *Self) ?Self.Item {
+        pub fn next(self: *Self) ?Self.Item {
             var elem = self.iter.next() orelse return null;
             var i = self.count;
             self.count += 1;

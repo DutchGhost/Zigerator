@@ -47,4 +47,19 @@ test "range nth" {
 
     var nth = range.nth(3);
     testing.expectEqual(nth, 3);
+
+    var next = range.next();
+    testing.expectEqual(next, 4);
+}
+
+test "take" {
+    var range = Range(usize).init(0, 100).rev().take(2);
+
+    var next = range.next();
+    testing.expectEqual(next, 99);
+
+    next = range.next();
+    testing.expectEqual(next, 98);
+    
+    testing.expectEqual(range.next(), null);
 }

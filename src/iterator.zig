@@ -1,10 +1,24 @@
 const Enumerate = @import("enumerate.zig").Enumerate;
 const Rev = @import("rev.zig").Rev;
+const Take = @import("take.zig").Take;
 
 /// Expect a `next` function to be defined:
 /// fn next(self: *Self) ?Item
 pub fn Iterator(comptime Self: type, comptime _Item: type) type {
     return struct {
+        const builtin = @import("builtin");
+        
+        comptime {
+            switch (@typeInfo(@typeOf(Self.next))) {
+                builtin.TypeId.Fn => |f| {
+                    if(f.args[0].arg_type.? != *Self) {
+                        @compileError("First argument must be `*Self`");
+                    }
+                },
+                else => @compileError("Expected `fn next(*Self) ?Self.Item`"),
+            }
+        }
+
         pub const Item = _Item;
 
         pub fn enumerate(self: Self) Enumerate(Self) {
@@ -13,6 +27,10 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 
         pub fn rev(self: Self) Rev(Self) {
             return Rev(Self).init(self);
+        }
+
+        pub fn take(self: Self, n: usize) Take(Self) {
+            return Take(Self).init(self, n);
         }
 
         pub usingnamespace if (!@hasDecl(Self, "nth")) struct {
@@ -64,7 +82,7 @@ pub fn Range(comptime T: type) type {
         fn nth(self: *Self, nth_elem: usize) ?T {
             if (self.begin + nth_elem < self.end) {
                 self.begin += nth_elem;
-                return self.begin;
+                return self.next();
             }
             return null;
         }
