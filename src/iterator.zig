@@ -1,6 +1,7 @@
 const Enumerate = @import("enumerate.zig").Enumerate;
 const Rev = @import("rev.zig").Rev;
 const Take = @import("take.zig").Take;
+const utils = @import("utils.zig");
 
 /// Expect a `next` function to be defined:
 /// fn next(self: *Self) ?Item
@@ -9,7 +10,7 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
         const builtin = @import("builtin");
         
         comptime {
-            switch (@typeInfo(@typeOf(Self.next))) {
+            switch (@typeInfo(@TypeOf(Self.next))) {
                 builtin.TypeId.Fn => |f| {
                     if(f.args[0].arg_type.? != *Self) {
                         @compileError("First argument must be `*Self`");
@@ -33,18 +34,34 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
             return Take(Self).init(self, n);
         }
 
-        pub usingnamespace if (!@hasDecl(Self, "nth")) struct {
-            pub fn nth(self: *Self, nth_elem: usize) ?Item {
-                var n = nth_elem;
-                while(self.next()) |elem| {
-                    if (n == 0) return elem;
-                    n -= 1;
+        pub usingnamespace utils.mixin_if(
+            !@hasDecl(Self, "nth"),
+            struct {
+                pub fn nth(self: *Self, nth_elem: usize) ?Item {
+                    var n = nth_elem;
+                    while(self.next()) |elem| {
+                        if (n == 0) return elem;
+                        n -= 1;
+                    }
+
+                    return null;
                 }
+        });
 
-                return null;
-            }
-        } else struct {};
+        pub usingnamespace utils.mixin_if(
+            @typeInfo(Item) == builtin.TypeId.Int,
+            struct {
+                pub fn sum(_self: Self) Item {
+                    var self = _self;
+                    var _sum = @as(Item, 0);
 
+                    while(self.next()) |elem| {
+                        _sum += elem;
+                    }
+
+                    return _sum;
+                }
+        });
     };
 }
 
