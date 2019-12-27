@@ -46,7 +46,8 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 
                     return null;
                 }
-        });
+            }
+        );
 
         pub usingnamespace utils.mixin_if(
             @typeInfo(Item) == builtin.TypeId.Int,
@@ -61,7 +62,8 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 
                     return _sum;
                 }
-        });
+            }
+        );
     };
 }
 
