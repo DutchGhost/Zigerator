@@ -53,15 +53,32 @@ test "range nth" {
 }
 
 test "take" {
-    var range = Range(usize).init(0, 100).rev().take(2);
+    {
+        var range = Range(usize).init(0, 100).rev().take(2);
 
-    var next = range.next();
-    testing.expectEqual(next, 99);
+        var next = range.next();
+        testing.expectEqual(next, 99);
 
-    next = range.next();
-    testing.expectEqual(next, 98);
+        next = range.next();
+        testing.expectEqual(next, 98);
 
-    testing.expectEqual(range.next(), null);
+        testing.expectEqual(range.next(), null);
+    }
+
+    {
+        var range = Range(usize).init(0, 100).take(3).rev();
+        var next = range.next();
+        testing.expectEqual(next, 2);
+
+        next = range.next();
+        testing.expectEqual(next, 1);
+
+        next = range.next();
+        testing.expectEqual(next, 0);
+
+        testing.expectEqual(range.next(), null);
+    }
+
 }
 
 test "sum" {
@@ -78,7 +95,54 @@ test "count" {
     }
 
     {
-        var counted = Range(usize).init(0, 100).rev().take(10).count();
+        var counted = Range(usize).init(0, 100).take(10).rev().count();
         testing.expectEqual(counted, 10);
     }
+}
+
+test "filter" {
+    var iter = Range(usize)
+        .init(0, 100)
+        .filter(.{
+            struct {
+                pub fn call(self: var, elem: *const usize) bool {
+                    return elem.* < 3;
+                }
+            }
+        });
+
+    var next = iter.next();
+    testing.expectEqual(next, 0);
+
+    next = iter.next();
+    testing.expectEqual(next, 1);
+
+    next = iter.next();
+    testing.expectEqual(next, 2);
+
+    testing.expectEqual(iter.next(), null);
+}
+
+test "filter reverse" {
+     var iter = Range(usize)
+        .init(0, 100)
+        .filter(.{
+            struct {
+                pub fn call(self: var, elem: *const usize) bool {
+                    return elem.* < 3;
+                }
+            }
+        })
+        .rev();
+
+    var next = iter.next();
+    testing.expectEqual(next, 2);
+
+    next = iter.next();
+    testing.expectEqual(next, 1);
+
+    next = iter.next();
+    testing.expectEqual(next, 0);
+
+    testing.expectEqual(iter.next(), null);   
 }

@@ -1,6 +1,7 @@
 const Enumerate = @import("enumerate.zig").Enumerate;
 const Rev = @import("rev.zig").Rev;
 const Take = @import("take.zig").Take;
+const Filter = @import("filter.zig").Filter;
 const utils = @import("utils.zig");
 
 /// Expect a `next` function to be defined:
@@ -34,6 +35,10 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
             return Take(Self).init(self, n);
         }
         
+        pub fn filter(self: Self, func: var) Filter(Self, @TypeOf(func)) {
+            return Filter(Self, @TypeOf(func)).init(self, func);
+        }
+
         pub usingnamespace utils.mixin_if(
             !@hasDecl(Self, "nth"),
             struct {
@@ -87,7 +92,23 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 /// fn next_back(self: *Self) ?Item
 pub fn DoubleEndedIterator(comptime Self: type) type {
     return struct {
-        usingnamespace Iterator(Self, Self.Item);
+        pub usingnamespace utils.mixin_if(
+            !@hasDecl(Self, "nth_back"),
+            struct {
+                pub fn nth_back(self: *Self, n: usize) ?Self.Item {
+                    var _n = n;
+                    while(self.next_back()) |elem| {
+                        if (_n == 0) { return elem; }
+                        _n -= 1; 
+                    }
+
+                    return null;
+                }
+            }
+        );
+
+        //@TODO: Fixme
+        // pub usingnamespace Iterator(Self, Self.Item);
     };
 }
 
@@ -114,7 +135,7 @@ pub fn Range(comptime T: type) type {
             return Self { .begin = begin, .end = end};
         }
 
-        fn nth(self: *Self, nth_elem: usize) ?T {
+        pub fn nth(self: *Self, nth_elem: usize) ?T {
             if (self.begin + nth_elem < self.end) {
                 self.begin += nth_elem;
                 return self.next();
@@ -122,7 +143,7 @@ pub fn Range(comptime T: type) type {
             return null;
         }
 
-        fn next(self: *Self) ?T {
+        pub fn next(self: *Self) ?T {
             if (self.begin >= self.end) {
                 return null;
             }
@@ -132,7 +153,7 @@ pub fn Range(comptime T: type) type {
             return ret;
         }
 
-        fn next_back(self: *Self) ?T {
+        pub fn next_back(self: *Self) ?T {
             if (self.begin < self.end) {
                 self.end -= 1;
                 return self.end;
@@ -140,7 +161,7 @@ pub fn Range(comptime T: type) type {
             return null;
         }
 
-        fn len(self: *const Self) usize {
+        pub fn len(self: *const Self) usize {
             return self.end - self.begin;
         }
 

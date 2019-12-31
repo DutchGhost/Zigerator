@@ -24,7 +24,7 @@ pub fn Enumerate(comptime Iter: type) type {
             return Self.Item { .a = i, .b = elem};
         }
         
-        fn next_back(self: *Self) ?Self.Item {
+        pub fn next_back(self: *Self) ?Self.Item {
             var elem = self.iter.next_back() orelse return null;
             var __len = self.iter.len();
             return Self.Item {.a = self.count + __len, .b = elem};

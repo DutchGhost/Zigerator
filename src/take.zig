@@ -21,6 +21,17 @@ pub fn Take(comptime Iter: type) type {
             }
         }
 
+        pub fn next_back(self: *Self) ?Iter.Item {
+            if (self.n == 0) {
+                return null;
+            } else {
+                var n = self.n;
+                self.n -= 1;
+
+                return self.iter.nth_back(self.iter.len() - n);
+            }
+        }
+
         pub fn nth(self: *Self, nth_elem: usize) ?Iter.Item {
             return self.iter.nth(nth_elem);
         }
