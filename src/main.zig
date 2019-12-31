@@ -70,3 +70,15 @@ test "sum" {
 
     testing.expectEqual(sum, 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1);
 }
+
+test "count" {
+    {
+        var counted = Range(usize).init(0, 10).count();
+        testing.expectEqual(counted, 10);
+    }
+
+    {
+        var counted = Range(usize).init(0, 100).rev().take(10).count();
+        testing.expectEqual(counted, 10);
+    }
+}

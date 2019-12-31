@@ -33,7 +33,7 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
         pub fn take(self: Self, n: usize) Take(Self) {
             return Take(Self).init(self, n);
         }
-
+        
         pub usingnamespace utils.mixin_if(
             !@hasDecl(Self, "nth"),
             struct {
@@ -45,6 +45,22 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
                     }
 
                     return null;
+                }
+            }
+        );
+
+        pub usingnamespace utils.mixin_if(
+            !@hasDecl(Self, "count"),
+            struct {
+                pub fn count(self: Self) usize {
+                    var __self = self;
+                    var __count: usize = 0;
+
+                    while(__self.next()) |_| {
+                        __count += 1;
+                    }
+
+                    return __count;
                 }
             }
         );
