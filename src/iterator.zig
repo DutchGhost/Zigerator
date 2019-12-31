@@ -33,7 +33,7 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
         pub fn take(self: Self, n: usize) Take(Self) {
             return Take(Self).init(self, n);
         }
-
+        
         pub usingnamespace utils.mixin_if(
             !@hasDecl(Self, "nth"),
             struct {
