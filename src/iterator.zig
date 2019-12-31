@@ -50,6 +50,22 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
         );
 
         pub usingnamespace utils.mixin_if(
+            !@hasDecl(Self, "count"),
+            struct {
+                pub fn count(self: Self) usize {
+                    var __self = self;
+                    var __count: usize = 0;
+
+                    while(__self.next()) |_| {
+                        __count += 1;
+                    }
+
+                    return __count;
+                }
+            }
+        );
+
+        pub usingnamespace utils.mixin_if(
             @typeInfo(Item) == builtin.TypeId.Int,
             struct {
                 pub fn sum(_self: Self) Item {
