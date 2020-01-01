@@ -1,4 +1,3 @@
-
 const itermodule = @import("iterator.zig");
 const Iterator = itermodule.Iterator;
 const DoubleEndedIterator = itermodule.DoubleEndedIterator;
@@ -11,7 +10,7 @@ pub fn Rev(comptime Iter: type) type {
         iter: Iter,
 
         pub fn init(iterator: Iter) Self {
-            return Self { .iter = iterator};
+            return Self{ .iter = iterator };
         }
 
         pub fn next(self: *Self) ?Self.Item {
@@ -26,8 +25,8 @@ pub fn Rev(comptime Iter: type) type {
             return self.iter.len();
         }
 
-        usingnamespace Iterator(Self, Iter.Item);
-        usingnamespace DoubleEndedIterator(Self);
-        usingnamespace ExactSizeIterator(Self);
+        pub usingnamespace Iterator(Self, Iter.Item);
+        pub usingnamespace DoubleEndedIterator(Self);
+        pub usingnamespace ExactSizeIterator(Self);
     };
 }

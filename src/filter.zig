@@ -11,14 +11,14 @@ pub fn Filter(comptime Iter: type, comptime F: type) type {
         const Self = @This();
 
         pub fn init(iter: Iter, predicate: F) Self {
-            return Self {
+            return Self{
                 .iter = iter,
-                .predicate = predicate
+                .predicate = predicate,
             };
         }
 
         pub fn next(self: *Self) ?Iter.Item {
-            while(true) {
+            while (true) {
                 var elem = self.iter.next() orelse return null;
 
                 if (self.predicate[0].call(self.predicate, &elem)) {
@@ -27,23 +27,20 @@ pub fn Filter(comptime Iter: type, comptime F: type) type {
             }
         }
 
-        pub usingnamespace utils.mixin_if(
-            @hasDecl(Iter, "next_back"),
-            struct {
-                pub fn next_back(self: *Self) ?Iter.Item {
-                    while(true) {
-                        var elem = self.iter.next_back() orelse return null;
+        pub usingnamespace utils.mixin_if(@hasDecl(Iter, "next_back"), struct {
+            pub fn next_back(self: *Self) ?Iter.Item {
+                while (true) {
+                    var elem = self.iter.next_back() orelse return null;
 
-                        if(self.predicate[0].call(self.predicate, &elem)) {
-                            return elem;
-                        }
+                    if (self.predicate[0].call(self.predicate, &elem)) {
+                        return elem;
                     }
                 }
-
-                pub usingnamespace DoubleEndedIterator(Self);
             }
-        );
 
-        usingnamespace Iterator(Self, Iter.Item);
+            pub usingnamespace DoubleEndedIterator(Self);
+        });
+
+        pub usingnamespace Iterator(Self, Iter.Item);
     };
 }

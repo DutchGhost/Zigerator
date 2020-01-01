@@ -9,7 +9,7 @@ pub fn Take(comptime Iter: type) type {
         const Self = @This();
 
         pub fn init(iter: Iter, n: usize) Self {
-            return Self { .iter = iter, .n = n};
+            return Self{ .iter = iter, .n = n };
         }
 
         pub fn next(self: *Self) ?Iter.Item {
@@ -35,7 +35,7 @@ pub fn Take(comptime Iter: type) type {
         pub fn nth(self: *Self, nth_elem: usize) ?Iter.Item {
             return self.iter.nth(nth_elem);
         }
-        
-        usingnamespace Iterator(Self, Iter.Item);
+
+        pub usingnamespace Iterator(Self, Iter.Item);
     };
 }
