@@ -1,18 +1,33 @@
-const itermodule = @import("iterator.zig");
-const Iterator = itermodule.Iterator;
-const DoubleEndedIterator = itermodule.DoubleEndedIterator;
+const builtin = @import("builtin");
+const TypeInfo = builtin.TypeInfo;
+const TypeId = builtin.TypeId;
+
+const iterator = @import("iterator.zig");
+const Iterator = iterator.Iterator;
+const DoubleEndedIterator = iterator.DoubleEndedIterator;
+const ExactSizeIterator = iterator.ExactSizeIterator;
+
 const utils = @import("utils.zig");
 
-pub fn Map(comptime Iter: type, comptime F: type, comptime Ret: type) type {
+pub fn Map(comptime Iter: type, comptime Ctx: type, comptime F: type) type {
     return struct {
-        iter: Iter,
-        mapfn: F,
+        const Ret = switch (@typeInfo(F)) {
+            TypeId.Fn => |f| f.return_type orelse void,
+            else => @compileError("Excpected a function."),
+        };
+
+        pub const Item = Ret;
 
         const Self = @This();
 
-        pub fn init(iter: Iter, mapfn: F) Self {
+        iter: Iter,
+        context: Ctx,
+        mapfn: F,
+
+        pub fn init(iter: Iter, context: Ctx, mapfn: F) Self {
             return Self{
                 .iter = iter,
+                .context = context,
                 .mapfn = mapfn,
             };
         }
@@ -20,9 +35,25 @@ pub fn Map(comptime Iter: type, comptime F: type, comptime Ret: type) type {
         pub fn next(self: *Self) ?Ret {
             var elem = self.iter.next() orelse return null;
 
-            return self.mapfn[0].call(self.mapfn, elem);
+            return self.mapfn(self.context, elem);
         }
 
-        pub usingnamespace Iterator(Self, Ret);
+        pub fn next_back(self: *Self) ?Ret {
+            var elem = self.iter.next_back() orelse return null;
+
+            return self.mapfn(self.context, elem);
+        }
+
+        pub fn len(self: *const Self) usize {
+            return self.iter.len();
+        }
+
+        pub fn is_empty(self: *const Self) bool {
+            return self.iter.is_empty();
+        }
+
+        pub usingnamespace Iterator(Self);
+        pub usingnamespace DoubleEndedIterator(Self);
+        pub usingnamespace ExactSizeIterator(Self);
     };
 }

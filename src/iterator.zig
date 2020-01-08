@@ -4,26 +4,17 @@ const Take = @import("take.zig").Take;
 const Filter = @import("filter.zig").Filter;
 const Map = @import("map.zig").Map;
 
+const traits = @import("traits.zig");
 const utils = @import("utils.zig");
+const builtin = @import("builtin");
+
+usingnamespace traits;
 
 /// Expect a `next` function to be defined:
 /// fn next(self: *Self) ?Item
-pub fn Iterator(comptime Self: type, comptime _Item: type) type {
+pub fn Iterator(comptime Self: type) type {
     return struct {
-        const builtin = @import("builtin");
-
-        comptime {
-            switch (@typeInfo(@TypeOf(Self.next))) {
-                builtin.TypeId.Fn => |f| {
-                    if (f.args[0].arg_type.? != *Self) {
-                        @compileError("First argument must be `*Self`");
-                    }
-                },
-                else => @compileError("Expected `fn next(*Self) ?Self.Item`"),
-            }
-        }
-
-        pub const Item = _Item;
+        const Item = Self.Item;
 
         pub fn enumerate(self: Self) Enumerate(Self) {
             return Enumerate(Self).init(self);
@@ -37,12 +28,12 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
             return Take(Self).init(self, n);
         }
 
-        pub fn filter(self: Self, func: var) Filter(Self, @TypeOf(func)) {
-            return Filter(Self, @TypeOf(func)).init(self, func);
+        pub fn filter(self: Self, context: var, predicate: fn (@TypeOf(context), *Item) bool) Filter(Self, @TypeOf(context), @TypeOf(predicate)) {
+            return Filter(Self, @TypeOf(context), @TypeOf(predicate)).init(self, context, predicate);
         }
 
-        pub fn map(self: Self, comptime Ret: type, func: var) Map(Self, @TypeOf(func), Ret) {
-            return Map(Self, @TypeOf(func), Ret).init(self, func);
+        pub fn map(self: Self, context: var, func: var) Map(Self, @TypeOf(context), @TypeOf(func)) {
+            return Map(Self, @TypeOf(context), @TypeOf(func)).init(self, context, func);
         }
 
         pub fn max_by_key(self: Self, cmp: var) ?Item {
@@ -62,7 +53,18 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
             return current_greatest_elem;
         }
 
-        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "nth"), struct {
+        pub fn fold(self: Self, context: var, init: var, f: fn (@TypeOf(context), @TypeOf(init), Item) @TypeOf(init)) @TypeOf(init) {
+            var _self = self;
+            var _init = init;
+
+            while (_self.next()) |elem| {
+                _init = f(context, _init, elem);
+            }
+
+            return _init;
+        }
+
+        const nth_fallback = struct {
             pub fn nth(self: *Self, nth_elem: usize) ?Item {
                 var n = nth_elem;
                 while (self.next()) |elem| {
@@ -72,22 +74,30 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 
                 return null;
             }
-        });
+        };
 
-        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "count"), struct {
+        const count_fallback = struct {
             pub fn count(self: Self) usize {
-                var __self = self;
-                var __count: usize = 0;
-
-                while (__self.next()) |_| {
-                    __count += 1;
-                }
-
-                return __count;
+                return self.fold({}, @as(usize, 0), struct {
+                    fn call(ctx: void, _count: usize, _: Item) usize {
+                        return _count + 1;
+                    }
+                }.call);
             }
-        });
+        };
 
-        pub usingnamespace utils.mixin_if(@typeInfo(Self.Item) == builtin.TypeId.Int, struct {
+        const last_fallback = struct {
+            pub fn last(self: Self) ?Item {
+                var none: ?usize = null;
+                return self.fold({}, none, struct {
+                    fn call(ctx: void, _: ?Item, elem: Item) ?Item {
+                        return elem;
+                    }
+                }.call);
+            }
+        };
+
+        const sum_impl = struct {
             pub fn sum(_self: Self) Item {
                 var self = _self;
                 var _sum = @as(Item, 0);
@@ -98,7 +108,12 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 
                 return _sum;
             }
-        });
+        };
+
+        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "nth"), nth_fallback);
+        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "count"), count_fallback);
+        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "last"), last_fallback);
+        pub usingnamespace utils.mixin_if(is_integral(Self.Item), sum_impl);
     };
 }
 
@@ -106,7 +121,7 @@ pub fn Iterator(comptime Self: type, comptime _Item: type) type {
 /// fn next_back(self: *Self) ?Item
 pub fn DoubleEndedIterator(comptime Self: type) type {
     return struct {
-        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "nth_back"), struct {
+        const nth_back_fallback = struct {
             pub fn nth_back(self: *Self, n: usize) ?Self.Item {
                 var _n = n;
                 while (self.next_back()) |elem| {
@@ -118,10 +133,8 @@ pub fn DoubleEndedIterator(comptime Self: type) type {
 
                 return null;
             }
-        });
-
-        //@TODO: Fixme
-        //usingnamespace Iterator(Self, Self.Item);
+        };
+        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "nth_back"), nth_back_fallback);
     };
 }
 
@@ -129,32 +142,26 @@ pub fn DoubleEndedIterator(comptime Self: type) type {
 /// fn len(self: *const Self) usize
 pub fn ExactSizeIterator(comptime Self: type) type {
     return struct {
-        usingnamespace Iterator(Self, Self.Item);
+        const is_empty_fallback = struct {
+            pub fn is_empty(self: *const Self) bool {
+                return self.len() == 0;
+            }
+        };
 
-        pub fn is_empty(self: *const Self) bool {
-            return self.len() == 0;
-        }
+        pub usingnamespace utils.mixin_if(!@hasDecl(Self, "is_empty"), is_empty_fallback);
     };
 }
 
 pub fn Range(comptime T: type) type {
     return struct {
-        pub usingnamespace Iterator(Self, T);
         begin: T,
         end: T,
 
+        pub const Item = T;
         const Self = @This();
 
         pub fn init(begin: T, end: T) Self {
             return Self{ .begin = begin, .end = end };
-        }
-
-        pub fn nth(self: *Self, nth_elem: usize) ?T {
-            if (self.begin + nth_elem < self.end) {
-                self.begin += nth_elem;
-                return self.next();
-            }
-            return null;
         }
 
         pub fn next(self: *Self) ?T {
@@ -165,6 +172,23 @@ pub fn Range(comptime T: type) type {
             var ret = self.begin;
             self.begin += 1;
             return ret;
+        }
+
+        pub fn nth(self: *Self, nth_elem: usize) ?T {
+            if (self.begin + nth_elem < self.end) {
+                self.begin += nth_elem;
+                return self.next();
+            }
+            return null;
+        }
+
+        pub fn last(self: Self) ?T {
+            if (self.is_empty()) {
+                return null;
+            } else {
+                self.start = self.end;
+                return self.end - 1;
+            }
         }
 
         pub fn next_back(self: *Self) ?T {
@@ -179,6 +203,7 @@ pub fn Range(comptime T: type) type {
             return self.end - self.begin;
         }
 
+        pub usingnamespace Iterator(Self);
         pub usingnamespace DoubleEndedIterator(Self);
         pub usingnamespace ExactSizeIterator(Self);
     };

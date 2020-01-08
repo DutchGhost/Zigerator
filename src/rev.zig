@@ -1,16 +1,18 @@
-const itermodule = @import("iterator.zig");
-const Iterator = itermodule.Iterator;
-const DoubleEndedIterator = itermodule.DoubleEndedIterator;
-const ExactSizeIterator = itermodule.ExactSizeIterator;
+const iterator = @import("iterator.zig");
+const Iterator = iterator.Iterator;
+const DoubleEndedIterator = iterator.DoubleEndedIterator;
+const ExactSizeIterator = iterator.ExactSizeIterator;
 
 pub fn Rev(comptime Iter: type) type {
     return struct {
+        pub const Item = Iter.Item;
+
         const Self = @This();
 
         iter: Iter,
 
-        pub fn init(iterator: Iter) Self {
-            return Self{ .iter = iterator };
+        pub fn init(iter: Iter) Self {
+            return Self{ .iter = iter };
         }
 
         pub fn next(self: *Self) ?Self.Item {
@@ -25,7 +27,11 @@ pub fn Rev(comptime Iter: type) type {
             return self.iter.len();
         }
 
-        pub usingnamespace Iterator(Self, Iter.Item);
+        pub fn is_empty(self: *const Self) bool {
+            return self.iter.is_empty();
+        }
+        
+        pub usingnamespace Iterator(Self);
         pub usingnamespace DoubleEndedIterator(Self);
         pub usingnamespace ExactSizeIterator(Self);
     };

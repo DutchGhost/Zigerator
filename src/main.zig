@@ -1,6 +1,17 @@
 usingnamespace @import("iterator.zig");
 
 const testing = @import("std").testing;
+const utils = @import("utils.zig");
+
+// const t = struct {
+//     pub fn next(self: *@This()) ?u32 {
+//         return 1;
+//     }
+// };
+// test "range" {
+//     var range = Range(usize).init(0, 1);
+//     _ = utils.requires(t).has_fn("next", fn (*t) ?u32);
+// }
 
 test "range iterate + enumerate" {
     var range = Range(usize).init(0, 4).enumerate();
@@ -100,11 +111,11 @@ test "count" {
 }
 
 test "filter" {
-    var iter = Range(usize).init(0, 100).filter(.{struct {
-        pub fn call(self: var, elem: *const usize) bool {
+    var iter = Range(usize).init(0, 100).filter({}, struct {
+        pub fn call(ctx: void, elem: *const usize) bool {
             return elem.* < 3;
         }
-    }});
+    }.call);
 
     var next = iter.next();
     testing.expectEqual(next, 0);
@@ -119,11 +130,11 @@ test "filter" {
 }
 
 test "filter reverse" {
-    var iter = Range(usize).init(0, 100).filter(.{struct {
-        pub fn call(self: var, elem: *const usize) bool {
+    var iter = Range(usize).init(0, 100).filter({}, struct {
+        fn call(ctx: void, elem: *const usize) bool {
             return elem.* < 3;
         }
-    }}).rev();
+    }.call).rev();
 
     var next = iter.next();
     testing.expectEqual(next, 2);
@@ -136,13 +147,12 @@ test "filter reverse" {
 
     testing.expectEqual(iter.next(), null);
 }
-
 test "map" {
-    var iter = Range(usize).init(0, 10).map(usize, .{struct {
-        pub fn call(self: var, elem: usize) usize {
+    var iter = Range(usize).init(0, 10).map({}, struct {
+        fn call(ctx: void, elem: usize) usize {
             return elem + 1;
         }
-    }}).max_by_key(.{struct {
+    }.call).max_by_key(.{struct {
         pub fn call(self: var, elem: *const usize) usize {
             return elem.*;
         }
@@ -171,8 +181,11 @@ fn transform(comptime T: type, elem: T) ?T {
 
 fn CollatzIterator(comptime T: type) type {
     return struct {
-        current: ?T,
+        pub const Item = T;
+
         const Self = @This();
+
+        current: ?T,
 
         pub fn init(current: T) Self {
             return Self{ .current = current };
@@ -185,7 +198,7 @@ fn CollatzIterator(comptime T: type) type {
             return elem;
         }
 
-        pub usingnamespace Iterator(Self, T);
+        pub usingnamespace Iterator(Self);
     };
 }
 
@@ -194,22 +207,28 @@ fn collatz(elem: var) CollatzIterator(@TypeOf(elem)) {
 }
 
 test "collatz" {
-    var collats = Range(usize).init(0, 1000000).filter(.{struct {
-        pub fn call(self: var, elem: *usize) bool {
+    var collats = Range(usize).init(0, 1000000).filter({}, struct {
+        pub fn call(ctx: void, elem: *const usize) bool {
             return elem.* & 1 == 1;
         }
-    }}).map(CollatsItem, .{struct {
-        pub fn call(self: var, n: usize) CollatsItem {
+    }.call).map({}, struct {
+        pub fn call(ctx: void, n: usize) CollatsItem {
             return CollatsItem{
                 .n = n,
                 .collatz = collatz(n).count(),
             };
         }
-    }}).max_by_key(.{struct {
+    }.call).max_by_key(.{struct {
         pub fn call(self: var, elem: *const CollatsItem) usize {
             return elem.collatz;
         }
     }});
 
     testing.expectEqual(collats, CollatsItem{ .n = 837799, .collatz = 525 });
+}
+
+test "last" {
+    var range = Range(usize).init(0, 100).take(10).rev();
+
+    testing.expectEqual(range.last(), 0);
 }

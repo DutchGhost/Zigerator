@@ -1,18 +1,22 @@
-const itermodule = @import("iterator.zig");
-const Iterator = itermodule.Iterator;
+const iterator = @import("iterator.zig");
+const Iterator = iterator.Iterator;
+const DoubleEndedIterator = iterator.DoubleEndedIterator;
+const ExactSizeIterator = iterator.ExactSizeIterator;
 
 pub fn Take(comptime Iter: type) type {
     return struct {
-        iter: Iter,
-        n: usize,
+        pub const Item = Iter.Item;
 
         const Self = @This();
+
+        iter: Iter,
+        n: usize,
 
         pub fn init(iter: Iter, n: usize) Self {
             return Self{ .iter = iter, .n = n };
         }
 
-        pub fn next(self: *Self) ?Iter.Item {
+        pub fn next(self: *Self) ?Item {
             if (self.n != 0) {
                 self.n -= 1;
                 return self.iter.next();
@@ -21,7 +25,7 @@ pub fn Take(comptime Iter: type) type {
             }
         }
 
-        pub fn next_back(self: *Self) ?Iter.Item {
+        pub fn next_back(self: *Self) ?Item {
             if (self.n == 0) {
                 return null;
             } else {
@@ -32,10 +36,16 @@ pub fn Take(comptime Iter: type) type {
             }
         }
 
-        pub fn nth(self: *Self, nth_elem: usize) ?Iter.Item {
+        pub fn nth(self: *Self, nth_elem: usize) ?Item {
             return self.iter.nth(nth_elem);
         }
 
-        pub usingnamespace Iterator(Self, Iter.Item);
+        pub fn len(self: *const Self) usize {
+            return self.iter.len();
+        }
+
+        pub usingnamespace Iterator(Self);
+        pub usingnamespace DoubleEndedIterator(Self);
+        pub usingnamespace ExactSizeIterator(Self);
     };
 }
