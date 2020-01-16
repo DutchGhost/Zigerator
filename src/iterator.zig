@@ -3,6 +3,7 @@ const Rev = @import("rev.zig").Rev;
 const Take = @import("take.zig").Take;
 const Filter = @import("filter.zig").Filter;
 const Map = @import("map.zig").Map;
+const Zip = @import("zip.zig").Zip;
 
 const traits = @import("traits.zig");
 const utils = @import("utils.zig");
@@ -34,6 +35,10 @@ pub fn Iterator(comptime Self: type) type {
 
         pub fn map(self: Self, context: var, func: var) Map(Self, @TypeOf(context), @TypeOf(func)) {
             return Map(Self, @TypeOf(context), @TypeOf(func)).init(self, context, func);
+        }
+
+        pub fn zip(self: Self, other: var) Zip(Self, @TypeOf(other)) {
+            return Zip(Self, @TypeOf(other)).init(self, other);
         }
 
         pub fn max_by_key(self: Self, cmp: var) ?Item {

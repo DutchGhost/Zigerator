@@ -63,34 +63,6 @@ test "range nth" {
     testing.expectEqual(next, 4);
 }
 
-test "take" {
-    {
-        var range = Range(usize).init(0, 100).rev().take(2);
-
-        var next = range.next();
-        testing.expectEqual(next, 99);
-
-        next = range.next();
-        testing.expectEqual(next, 98);
-
-        testing.expectEqual(range.next(), null);
-    }
-
-    {
-        var range = Range(usize).init(0, 100).take(3).rev();
-        var next = range.next();
-        testing.expectEqual(next, 2);
-
-        next = range.next();
-        testing.expectEqual(next, 1);
-
-        next = range.next();
-        testing.expectEqual(next, 0);
-
-        testing.expectEqual(range.next(), null);
-    }
-}
-
 test "sum" {
     var range = Range(usize).init(0, 10);
     var sum = range.sum();
@@ -231,4 +203,19 @@ test "last" {
     var range = Range(usize).init(0, 100).take(10).rev();
 
     testing.expectEqual(range.last(), 0);
+}
+
+test "zip" {
+    var zipped = Range(usize).init(0, 100).zip(Range(usize).init(0, 10).rev().take(3)).take(5);
+
+    var next = zipped.next();
+    testing.expectEqual(next, Tuple(usize, usize){ .a = 0, .b = 9 });
+
+    next = zipped.next();
+    testing.expectEqual(next, Tuple(usize, usize){ .a = 1, .b = 8 });
+
+    next = zipped.next();
+    testing.expectEqual(next, Tuple(usize, usize){ .a = 2, .b = 7 });
+
+    testing.expectEqual(zipped.next(), null);
 }
